@@ -21,6 +21,7 @@ function ReqSync(resolve, reject, options) {
         }
         if (options.redirect !== false && res.headers['location']) {
             url = new URL(res.headers['location'], options.url)
+            options.href = url.href
             options.hostname = url.hostname
             options.port = url.port
             options.path = url.pathname + url.search
