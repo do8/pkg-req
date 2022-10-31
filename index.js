@@ -3,7 +3,8 @@ const http = require('http')
     , zlib = require('zlib')
     , dns = require('./dns')
     , cache = require('./cache')
-module.exports = { get, post, dns, cache }
+    , store = require('./store')
+module.exports = { get, post, dns, cache, store }
 //https.globalAgent.options.rejectUnauthorized = false
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 //{ rejectUnauthorized: false, requestCert: true }
