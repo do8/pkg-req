@@ -1,7 +1,9 @@
 const http = require('http')
     , https = require('https')
     , zlib = require('zlib')
-module.exports = { get, post }
+    , dns = require('./dns')
+    , cache = require('./cache')
+module.exports = { get, post, dns, cache }
 //https.globalAgent.options.rejectUnauthorized = false
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
 //{ rejectUnauthorized: false, requestCert: true }
@@ -13,7 +15,16 @@ Object.defineProperty(http.IncomingMessage.prototype, 'json', {
     get() { if (this._json == undefined) this._json = JSON.parse(this.data); return this._json },
     configurable: false
 })
-function ReqSync(resolve, reject, options) {
+async function ReqSync(resolve, reject, options) {
+    if (options.dns) {
+        if (!/^[ \d.]+$/.test(options.hostname)) {
+            let ip = await dns.getip(options.hostname)
+            if (ip) {
+                options.headers.host = options.hostname
+                options.hostname = ip
+            }
+        }
+    }
     const req = (options.protocol[4] == 's' ? https : http).request(options, (res) => {
         if (options.Cookie && res.headers['set-cookie']) for (let c of res.headers['set-cookie']) {
             let str = c.substring(0, c.indexOf(';')), i = str.indexOf('=')
@@ -26,14 +37,13 @@ function ReqSync(resolve, reject, options) {
             options.port = url.port
             options.path = url.pathname + url.search
             options.protocol = url.protocol
+            if (options.headers) delete options.headers.host
             if (options.redirectNum) options.redirectNum++
             else options.redirectNum = 1
             if (options.redirectNum < 10) return ReqSync(resolve, reject, options)
         }
         let arr = []
-        res.on('data', chunk => {
-            arr.push(chunk)
-        })
+        res.on('data', chunk => arr.push(chunk))
         res.on('end', () => {
             res.options = options
             res.data = Buffer.concat(arr)
@@ -64,8 +74,8 @@ function ReqSync(resolve, reject, options) {
     req.end()
 }
 function Req(options) {
-    return new Promise((resolve, reject) => {
-        ReqSync(resolve, reject, options)
+    return new Promise(async (resolve, reject) => {
+        await ReqSync(resolve, reject, options)
     })
 }
 function rawOption(url, option, method) {
