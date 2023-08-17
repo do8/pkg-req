@@ -23,8 +23,7 @@ const proxy_store = new Proxy(store, {
 })
 let is_save = false
 function exitHandler(options, err) {
-  console.log('exitHandler', `${options}`)
-  if (err == 'uncaughtException') return
+  if (typeof options == 'object') return console.error(err, options)
   if (is_save) return
   is_save = true
   save_store()
